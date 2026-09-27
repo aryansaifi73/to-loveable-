@@ -302,12 +302,22 @@ export async function loginWithCredentials(
   }
 }
 
-export async function loginWithGoogle(): Promise<{ success: boolean; message: string; user: User }> {
-  const mockGoogleUser = {
-    name: "Alex Dev",
-    email: "alex@example.com",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-  };
+export async function loginWithGoogle(
+  googleUser?: { name: string; email: string; avatarUrl?: string },
+): Promise<{ success: boolean; message: string; user: User }> {
+  const mockGoogleUser = googleUser
+    ? {
+        name: googleUser.name,
+        email: googleUser.email,
+        avatarUrl:
+          googleUser.avatarUrl ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(googleUser.name)}`,
+      }
+    : {
+        name: "Alex Dev",
+        email: "alex@example.com",
+        avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
+      };
 
   try {
     const result = await apiFetch<AuthResponse>("/api/auth/google", {
@@ -322,8 +332,19 @@ export async function loginWithGoogle(): Promise<{ success: boolean; message: st
     return { success: true, message: "Logged in with Google successfully!", user };
   } catch (err: any) {
     if (isNetworkFailure(err)) {
-      const demo = mockLoginGoogle();
-      return { success: true, message: "Google login (demo mode) — backend not reachable", user: demo.user };
+      const demo = {
+        user: mockRegister(
+          mockGoogleUser.name,
+          mockGoogleUser.email,
+          undefined,
+          mockGoogleUser.avatarUrl,
+        ).user,
+      };
+      return {
+        success: true,
+        message: "Google login (demo mode) — backend not reachable",
+        user: demo.user,
+      };
     }
 
     throw new Error(err?.message || "Google login failed");
